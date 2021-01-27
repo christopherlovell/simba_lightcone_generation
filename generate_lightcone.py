@@ -1,8 +1,7 @@
 import sys
-import json
 
+import h5py
 import numpy as np
-from astropy.cosmology import Planck15 as cosmo
 from astropy.cosmology import z_at_value
 import astropy.units as u
 
@@ -12,7 +11,7 @@ from simba import simba
 sb = simba()
 verbose = True
 
-lc_fname = 'output/lightcone_%03d.json'
+lc_fname = 'output/lightcone_%03d.h5'
 
 N_lcs = int(sys.argv[1])
 area =  float(sys.argv[2]) # degree ^ 2
@@ -30,7 +29,7 @@ cs = sb.get_caesar(snaps[0])
 L = cs.simulation.boxsize.to('Mpccm').value
 
 zeds_mask = (zeds > z_min) & (zeds < z_max)
-L_unit = cosmo.kpc_comoving_per_arcmin(zeds[zeds_mask]).to('Mpc / degree')
+L_unit = sb.cosmo.kpc_comoving_per_arcmin(zeds[zeds_mask]).to('Mpc / degree')
 A = (L_unit * area**0.5).value
 
 if np.any(A > L):
@@ -45,12 +44,11 @@ for i,snap in enumerate(snaps[zeds_mask]):
     print("\nz:",z,snap)
 
     cs = sb.get_caesar(snap)
-    a = cs.simulation.scale_factor
-    
+    a = cs.simulation.scale_factor    
 
-    L_unit = cosmo.kpc_comoving_per_arcmin(z).to('Mpc / degree')
+    L_unit = sb.cosmo.kpc_comoving_per_arcmin(z).to('Mpc / degree')
     A = (L_unit * area**0.5).value
-    z_offset = cosmo.comoving_distance(z).value - L/2
+    z_offset = sb.cosmo.comoving_distance(z).value - L/2
     
     coods_cMpc = np.array([g.pos.to('Mpccm').value for g in cs.galaxies])
 
@@ -58,7 +56,6 @@ for i,snap in enumerate(snaps[zeds_mask]):
     
     if verbose: print("Generating lightcone selection...")
     lc_mask = np.ones(len(coods_cMpc),dtype=bool)
-
 
     for _lc in np.arange(N_lcs):
         lc_out[str(_lc)][snap] = {}
@@ -88,20 +85,18 @@ for i,snap in enumerate(snaps[zeds_mask]):
 
         _ra = _coods[:,0] / L_unit # deg
         _dec = _coods[:,0] / L_unit # deg
-
-        _redshift = [z_at_value(cosmo.comoving_distance, _c * u.Mpc) \
+        _redshift = [z_at_value(sb.cosmo.comoving_distance, _c * u.Mpc) \
                           for _c in (_coods[:,2] + z_offset)]
 
-        lc_out[str(_lc)][snap]['index'] = lc_idx_arr.tolist()
-        lc_out[str(_lc)][snap]['RA'] = _ra.value.tolist()
-        lc_out[str(_lc)][snap]['DEC'] = _dec.value.tolist()
-        lc_out[str(_lc)][snap]['z'] = _redshift
+        lc_out[str(_lc)][snap]['index'] = lc_idx_arr # .tolist()
+        lc_out[str(_lc)][snap]['RA'] = _ra.value # .tolist()
+        lc_out[str(_lc)][snap]['DEC'] = _dec.value # .tolist()
+        lc_out[str(_lc)][snap]['z'] = np.array(_redshift)
 
 
 print("_N_all:",_N_all)
 
 print("Writing lightcone selection to %s"%lc_fname)
 for _lc in np.arange(N_lcs):
-    with open(lc_fname%_lc, 'w') as fp:
-        json.dump(lc_out[str(_lc)], fp, sort_keys=True, indent=4, separators=(',', ': '))
+    sb.save_dict_to_hdf5(lc_out[str(_lc)], lc_fname%_lc)
 
