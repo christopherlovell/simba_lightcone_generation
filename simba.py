@@ -10,7 +10,7 @@ from astropy import units as u
 class simba:
     def __init__(self):
 
-        self.lightcone_snaps = np.array([str(s).zfill(3) for s in np.arange(0,151,2)[::-1]])
+        self.lightcone_snaps = np.array([str(s).zfill(3) for s in np.arange(1,152,2)[::-1]])
 
         self.sim_directory='/cosma7/data/dp104/dc-dave2/sim/m100n1024/s50j7k/'
         # self.cs_directory=self.sim_directory+'Groups/'#'Groups_old/caesar_old/'
@@ -27,11 +27,55 @@ class simba:
         # return  caesar.quick_load(fname)
         return  caesar.load(fname)
 
+    def _check_hdf5(self, fname, obj_str):
+        with h5py.File(fname, 'a') as h5file:
+            if obj_str not in h5file:
+                return False
+            else:
+                return True
+
+    def create_dataset(self, fname, values, name, group='/', overwrite=False,
+                       dtype=np.float64, desc = None, unit = None, verbose=False):
+
+        shape = np.shape(values)
+
+        if self._check_hdf5(fname, group) is False:
+            raise ValueError("Group does not exist")
+            return False
+
+        try:
+            with h5py.File(fname, mode='a') as h5f:
+
+                if overwrite:
+                    if verbose: print('Overwriting data in %s/%s'%(group,name))
+                    if self._check_hdf5(fname, "%s/%s"%(group,name)) is True:
+                        grp = h5f[group]
+                        del grp[name]
+
+
+                dset = h5f.create_dataset("%s/%s"%(group,name), shape=shape,
+                                           maxshape=(None,) + shape[1:],
+                                           dtype=dtype, 
+                                           #compression=self.compression,
+                                           data=values)
+
+                if desc is not None:
+                    dset.attrs['Description'] = desc
+                if unit is not None:
+                    dset.attrs['Units'] = unit
+
+        except Exception as e:
+            print("Oh! something went wrong while creating {}/{} or it already exists.\
+                   \nNo value was written into the dataset.".format(group, name))
+            print (e)
+            # sys.exit
+    
+
     def save_dict_to_hdf5(self, dic, filename):
         """
         ....
         """
-        with h5py.File(filename, 'w') as h5file:
+        with h5py.File(filename, 'a') as h5file:
             self.recursively_save_dict_contents_to_group(h5file, '/', dic)
     
     def recursively_save_dict_contents_to_group(self, h5file, path, dic):
@@ -46,3 +90,22 @@ class simba:
             else:
                 raise ValueError('Cannot save %s type'%type(item))
 
+
+    def load_dict_from_hdf5(self, filename):
+        """
+        ....
+        """
+        with h5py.File(filename, 'r') as h5file:
+            return self.recursively_load_dict_contents_from_group(h5file, '/')
+    
+    def recursively_load_dict_contents_from_group(self, h5file, path):
+        """
+        ....
+        """
+        ans = {}
+        for key, item in h5file[path].items():
+            if isinstance(item, h5py._hl.dataset.Dataset):
+                ans[key] = item.value
+            elif isinstance(item, h5py._hl.group.Group):
+                ans[key] = self.recursively_load_dict_contents_from_group(h5file, path + key + '/')
+        return ans 
