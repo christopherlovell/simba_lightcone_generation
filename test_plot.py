@@ -1,22 +1,26 @@
 import json
-
 import matplotlib.pyplot as plt
+from simba import simba
 
+sb = simba()
 
-lc_fname = 'output/lightcone_%03d.json'
+lc_fname = 'output/test_lightcone_%03d.h5'
 _lc = 0
 
-with open(lc_fname%_lc, 'r') as fp:
-    lc_out = json.load(fp)
+lc_out = sb.load_dict_from_hdf5(lc_fname%_lc)
 
+fig, (ax1,ax2) = plt.subplots(2,1,figsize=(5,8))
 
 for snap in lc_out.keys():     
     zeds = lc_out[str(snap)]['z'] 
     RA = lc_out[str(snap)]['RA'] 
     DEC = lc_out[str(snap)]['DEC'] 
-    plt.scatter(zeds,RA) 
+    ax1.scatter(zeds,RA) 
+    ax2.scatter(zeds,DEC) 
 
-plt.xlabel('z')
-plt.ylabel('R.A. (deg)')
+ax2.set_xlabel('z')
+ax1.set_ylabel('R.A. (deg)')
+ax2.set_ylabel('Dec. (deg)')
+
 plt.show()   
 
