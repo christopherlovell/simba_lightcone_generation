@@ -10,11 +10,12 @@ from astropy import units as u
 class simba:
     def __init__(self):
 
-        self.lightcone_snaps = np.array([str(s).zfill(3) for s in np.arange(1,152,2)[::-1]])
+        # self.lightcone_snaps = np.array([str(s).zfill(3) for s in np.arange(1,152,2)[::-1]])
 
         self.sim_directory='/cosma7/data/dp104/dc-dave2/sim/m100n1024/s50j7k/'
-        # self.cs_directory=self.sim_directory+'Groups/'#'Groups_old/caesar_old/'
-        self.cs_directory=self.sim_directory+'Groups_old/caesar_old/'
+        self.cs_directory=self.sim_directory+'Groups/'#'Groups_old/caesar_old/'
+
+        # self.cs_directory=self.sim_directory+'Groups_old/caesar_old/'
         self.output_file='/cosma7/data/dp104/dc-dave2/sim/m100n1024/s50/outputs_boxspace50.txt'
         self.cosmo = cosmo
 
@@ -109,3 +110,15 @@ class simba:
             elif isinstance(item, h5py._hl.group.Group):
                 ans[key] = self.recursively_load_dict_contents_from_group(h5file, path + key + '/')
         return ans 
+
+
+    def yesno(self, question):
+        """Simple Yes/No Function."""
+        prompt = f'{question} ? (y/n): '
+        ans = input(prompt).strip().lower()
+        if ans not in ['y', 'n']:
+            print(f'{ans} is invalid, please try again...')
+            return yesno(question)
+        if ans == 'y':
+            return True
+        return False

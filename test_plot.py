@@ -1,13 +1,16 @@
+import sys
+
 import json
 import matplotlib.pyplot as plt
 from simba import simba
 
 sb = simba()
 
-lc_fname = 'output/test_lightcone_%03d.h5'
-_lc = 0
+lc_fname = sys.argv[1]
+# _lc = 0
+#lc_fname = 'output/galaxy_lightcone_%03d.h5'%_lc
 
-lc_out = sb.load_dict_from_hdf5(lc_fname%_lc)
+lc_out = sb.load_dict_from_hdf5(lc_fname)
 
 fig, (ax1,ax2) = plt.subplots(2,1,figsize=(5,8))
 
