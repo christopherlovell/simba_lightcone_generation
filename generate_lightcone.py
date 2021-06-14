@@ -38,6 +38,12 @@ parser.add_argument("--overwrite", help="Overwrite existing datasets",
 parser.add_argument("--halos", help="Output halos, rather than galaxies.", 
                     action='store_true')
 
+parser.add_argument("--mass", help="Save halo/galaxy mass information.", 
+                    action='store_true')
+
+parser.add_argument("--sfr", help="Save halo/galaxy star formation rate information.", 
+                    action='store_true')
+
 parser.add_argument("--midsnap", help="Defines how snaps are arranged in the lightcone. \
                                         By default they are arranged from the leading edge, so the z = 0 snapshot is used first (for a lightcone starting at z = 0).\
                                         If mid-snap is set each snap is represented by the mid-point of the redshift range, \
@@ -58,7 +64,6 @@ lc_fname = args.filename
 overwrite = args.overwrite
 midsnap = args.midsnap
 halo_flag = args.halos
-# lc_fname = 'output/halo_lightcone_%03d.h5'
 
 print("############################")
 print("Area: %.2f deg^2"%area)
@@ -67,12 +72,8 @@ print("z_min: %.2f"%z_min)
 print("z_max: %.2f"%z_max)
 print("filename: %s"%lc_fname)
 print("Halos?: %d"%halo_flag)
-print("############################")
+print("############################\n\n")
 
-# N_lcs = int(sys.argv[1])
-# area =  float(sys.argv[2]) # degree ^ 2
-# z_min = float(sys.argv[3])
-# z_max = float(sys.argv[4])
 
 if N_lcs < 1: raise ValueError('Need at least one lightcone to generate!')
 
@@ -142,6 +143,18 @@ for i,snapA in enumerate(snaps[zeds_mask]):
         coods_cMpc = np.array([h.pos.to('Mpccm').value for h in cs.halos])
     else:
         coods_cMpc = np.array([g.pos.to('Mpccm').value for g in cs.galaxies])
+   
+    if args.mass:
+        if halo_flag:
+            mass = np.array([h.mass.value for h in cs.halos])
+        else:
+            mass = np.array([g.mass.value for g in cs.galaxies])
+    
+    if args.sfr:
+        if halo_flag:
+            sfr = np.array([h.sfr.value for h in cs.halos])
+        else:
+            sfr = np.array([g.sfr.value for g in cs.galaxies])
 
     if len(coods_cMpc) == 0:
         print("No galaxies left! Exiting...")
@@ -150,7 +163,6 @@ for i,snapA in enumerate(snaps[zeds_mask]):
     _N_all += len(coods_cMpc)
     
     if verbose: print("Generating lightcone selection...")
-    # lc_mask = np.ones(len(coods_cMpc),dtype=bool)
 
     for _lc in np.arange(N_lcs):
         lc_out[str(_lc)][snapA] = {}
@@ -206,6 +218,12 @@ for i,snapA in enumerate(snaps[zeds_mask]):
         sb.create_dataset(lc_fname%_lc, _ra, 'RA', group=snapA, overwrite=True)
         sb.create_dataset(lc_fname%_lc, _dec, 'DEC', group=snapA, overwrite=True)
         sb.create_dataset(lc_fname%_lc, _redshift, 'z', group=snapA, overwrite=True)
+
+        if args.mass: 
+            sb.create_dataset(lc_fname%_lc, mass[lc_idx_arr], 'Stellar Mass', group=snapA, overwrite=True)
+        
+        if args.sfr: 
+            sb.create_dataset(lc_fname%_lc, sfr[lc_idx_arr], 'SFR', group=snapA, overwrite=True)
 
 
     A_A = A
